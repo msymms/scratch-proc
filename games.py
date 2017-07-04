@@ -14,17 +14,17 @@ class Games(object):
         self.initialValue = 0  # Total money in the Game at the start - calculated
         self.currentValue = 0  # Amount of money left in the game
 
-    def gameProbability():  # Probability of obtaining a winning ticket
+    def gameProbability(self):  # Probability of obtaining a winning ticket
         self.totalPrizes / self.totalTickets
 
-    def numTicketsRem():
+    def numTicketsRem(self):
         self.totalTickets - (self.prizesClaimed * self.gameProbability())
 
-    def initialValuePerTicket():
+    def initialValuePerTicket(self):
         self.initialValue / self.totalTickets
 
-    def currentValuePerTicket():
+    def currentValuePerTicket(self):
         self.currentValue / self.numTicketsRem()
 
-    def changeInValue():
+    def changeInValue(self):
         self.currentValuePerTicket() / self.initialValuePerTicket()
