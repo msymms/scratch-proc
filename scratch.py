@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
-import urllib3 as ul
+import requests as rq
+import re
 import pandas as pd
 
 # grab the data from the lottery website
@@ -11,25 +12,46 @@ import pandas as pd
 # From there we can determine the current value per ticket.
 
 # ***********  Process CSV data **************
-# grab the csv for current game data
-url = "http://www.txlottery.org/export/sites/lottery/Games/Scratch_Offs/scratchoff.csv"
+numbers = []
+game_numbers = []
+game_urls = []
+total_tix = []
+prob = []
 
-http = ul.PoolManager()
+# region *********** Retrieve the Links to each Game *****************
 
-df = pd.read_csv(url, skiprows=1, encoding='latin1')
+url = "http://www.txlottery.org/export/sites/lottery/Games/Scratch_Offs/all.html"
 
-df.columns = df.columns.str.strip()
+response = rq.get(url)
 
-#   Rename the Columns
-names = df.columns.tolist()
-names[names.index('Game Number')] = 'game_number'
-names[names.index('Game Name')] = 'game_name'
-names[names.index('Game Close Date')] = 'close_date'
-names[names.index('Ticket Price')] = 'ticket_price'
-names[names.index('Prize Level')] = 'prize_level'
-names[names.index('Total Prizes in Level')] = 'prizes_in_level'
-names[names.index('Prizes Claimed')] = 'prizes_claimed'
-df.columns = names
+soup = BeautifulSoup(response.content, "html.parser")
 
-# Remove the 'Total' Rows
-df = df[df.prize_level != 'TOTAL']
+tablebody = soup.tbody
+
+links = tablebody.find_all('a')
+
+for tag in links:
+    numbers.append(tag.string)
+    game_urls.append(tag['href'])
+
+# endregion
+
+# region *********** Grab the total number of tickets and load into a list *****************
+
+for link in game_urls:
+    url = 'http://www.txlottery.org' + link
+    response = rq.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
+    temp_str = soup.find('p', class_='scratchoffDetailsApproxTickets').string
+    temp_str = str(temp_str).replace(',', '')
+    temp_str = temp_str.rsplit('*')[0]
+    temp_str = re.findall('\d+', temp_str)
+    temp2 = int(str(temp_str[0]))
+    total_tix.append(temp2)
+
+    temp_str = soup.find('p', class_='scratchoffDetailsOdds').string
+    temp_str = temp_str.rsplit('*')[0]
+    temp2 = float(str(temp_str[-4:]))
+    prob.append(temp2)
+
+    # endregion

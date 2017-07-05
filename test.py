@@ -15,9 +15,11 @@ tot_money_in_game = []
 game_probability = []
 remaining_tix = []      #this is an estimate based on the linear sales of winners * probability
 cur_money_in_game = []
-init_value_per_ticket = []
-cur_value_per_ticket = []
-change_in_value = []
+# init_value_per_ticket = []
+# cur_value_per_ticket = []
+# change_in_value = []
+percent_money = []
+percent_tix = []
 
 
 
@@ -105,6 +107,11 @@ for link in game_urls:
     temp2 = int(str(temp_str[0]))
     total_tix.append(temp2)
 
+    temp_str = soup.find('p', class_='scratchoffDetailsOdds').string
+    temp_str = temp_str.rsplit('*')[0]
+    temp2 = float(str(temp_str[-4:]))
+    game_probability.append(temp2)
+
 
 # endregion
 
@@ -132,23 +139,27 @@ for num in numbers:
     cur_money_in_game.append(sum(cur_money_at_level.values))
     # get the total tickets in game based index
     tix = int(total_tix[i])
-    # calculate the probability of the game
-    prob = tix / tot_prizes
-    game_probability.append(prob)
+    prob = float(game_probability[i])
     # calculate the estimated remaining tickets in game
-    est_tix_rem = tix - (sum(df2.prizes_claimed.values) * prob)
+    est_tix_rem = tix - (sum(df2.prizes_claimed.values) * (prob))
     remaining_tix.append(est_tix_rem)
-    # calculate the initial value per ticket
-    init_tix_val = sum(tot_money_at_level) / tix
-    # add to list
-    init_value_per_ticket.append(init_tix_val)
-    #calculate the current value per ticket
-    cur_tix_val = (sum(cur_money_at_level)) / est_tix_rem
-    # add to list
-    cur_value_per_ticket.append(cur_tix_val)
-    # calculate the change in value
-    ch_val = cur_tix_val - init_tix_val
-    change_in_value.append(ch_val)
+    # # calculate the initial value per ticket
+    # init_tix_val = format((sum(tot_money_at_level) / tix), '.2f')
+    # # add to list
+    # init_value_per_ticket.append(init_tix_val)
+    # #calculate the current value per ticket
+    # cur_tix_val = format(((sum(cur_money_at_level)) / est_tix_rem), '.2f')
+    # # add to list
+    # cur_value_per_ticket.append(cur_tix_val)
+    # # calculate the change in value
+    # ch_val = float(cur_tix_val) - float(init_tix_val)
+    # change_in_value.append(ch_val)
+    # calculate the percentage of tickets left
+    pct_prizes = sum(df2.prizes_claimed) / tot_prizes
+    percent_tix.append(pct_prizes)
+    # calculate the percetage of money left
+    pct_money = sum(cur_money_at_level.values) / sum(tot_money_at_level)
+    percent_money.append(pct_money)
 
     #increment the indexer
     i += i
@@ -182,13 +193,12 @@ r_df = pd.DataFrame(
         'Probability': game_probability,
         'Remaining Tickets': remaining_tix,
         'Current Money in Game': cur_money_in_game,
-        'Initial $ per Ticket': init_value_per_ticket,
-        'Current $ per Ticket': cur_value_per_ticket,
-        'Change in Value': change_in_value
+        '% Prizes Left': percent_tix,
+        '% Money Left': percent_money,
     }
 )
     # sort the dataframe
-results = r_df.sort_values(['Change in Value'], ascending=False)
+results = r_df.sort_values(['Game Number'], ascending=False)
     # write out the CSV
 results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
 
