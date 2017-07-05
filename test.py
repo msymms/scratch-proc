@@ -9,6 +9,7 @@ from games import Games
 game_urls = []
 numbers = []
 g_names = []
+g_cost = []
 total_tix = []
 tot_money_in_game = []
 game_probability = []
@@ -80,6 +81,15 @@ for tag in links:
     numbers.append(tag.string)
     game_urls.append(tag['href'])
 
+# remove games that are not in the csv file - these are usually games that have not started.
+for num in numbers:
+    if int(num) in df.game_number.values:
+        continue
+    else:
+        idx = numbers.index(num)
+        numbers.remove(num)
+        game_urls.pop(idx)
+
 # endregion
 
 # region *********** Grab the total number of tickets and load into a list *****************
@@ -98,7 +108,7 @@ for link in game_urls:
 
 # endregion
 
-# region *********** Cacluate the Odds and Initial Value Per Ticket ****************
+# region *********** Calculate the Odds and Initial Value Per Ticket ****************
 
 i = 0
 
@@ -107,9 +117,11 @@ for num in numbers:
     # retreive the subset based on game number
     df2 = df[df.game_number == int(num)]
     # set the game name
-    g_names.append(df2.game_name)
+    g_names.append(df2.game_name.iloc[0])
+    # set the game cost
+    g_cost.append(df2.ticket_price.iloc[0])
     # calculate the total amount of winning tickets in game
-    tot_prizes = sum(df2.prizes_in_level)
+    tot_prizes = sum(df2.prizes_in_level.values)
     # calculate the amount of money at each prize level
     tot_money_at_level = df2.prize_level * df2.prizes_in_level
     # calculate the initial amount of money in the game
@@ -117,23 +129,26 @@ for num in numbers:
     # calculate current money in game
     cur_money_at_level = (df2.prizes_in_level - df2.prizes_claimed) * df2.prize_level
     # calculate the current amount of money in the game
-    cur_money_in_game.append(sum(cur_money_at_level))
+    cur_money_in_game.append(sum(cur_money_at_level.values))
     # get the total tickets in game based index
     tix = int(total_tix[i])
     # calculate the probability of the game
-    prob = tot_prizes / tix
+    prob = tix / tot_prizes
+    game_probability.append(prob)
     # calculate the estimated remaining tickets in game
-    est_tix_rem = tix - (sum(df.prizes_claimed) * prob)
+    est_tix_rem = tix - (sum(df2.prizes_claimed.values) * prob)
+    remaining_tix.append(est_tix_rem)
     # calculate the initial value per ticket
-    init_tix_val = tix / sum(tot_money_at_level)
+    init_tix_val = sum(tot_money_at_level) / tix
     # add to list
     init_value_per_ticket.append(init_tix_val)
     #calculate the current value per ticket
-    cur_tix_val = est_tix_rem / (sum(cur_money_at_level))
+    cur_tix_val = (sum(cur_money_at_level)) / est_tix_rem
     # add to list
     cur_value_per_ticket.append(cur_tix_val)
     # calculate the change in value
     ch_val = cur_tix_val - init_tix_val
+    change_in_value.append(ch_val)
 
     #increment the indexer
     i += i
@@ -141,28 +156,40 @@ for num in numbers:
 # endregion
 
 # region ********** Finish the File *********************
-    # remove duplicates from g_names
-g_names = list(set(g_names))
+
+# testing teh lengths of the lists
+# print('Length of numbers ' + str(len(numbers)))
+# print('Length of g_names ' + str(len(g_names)))
+# print('Length of total_tix ' + str(len(total_tix)))
+# print('Length of tot_money_in_game ' + str(len(tot_money_in_game)))
+# print('Length of game_probability ' + str(len(game_probability)))
+# print('Length of remaining_tix ' + str(len(remaining_tix)))
+# print('Length of cur_money_in_game ' + str(len(cur_money_in_game)))
+# print('Length of init_value_per_ticket ' + str(len(init_value_per_ticket)))
+# print('Length of cur_value_per_ticket ' + str(len(cur_value_per_ticket)))
+# print('Length of change_in_value ' + str(len(change_in_value)))
+
+
+
     # construct the dataframe from the lists
 r_df = pd.DataFrame(
     {
-        'game_number': numbers,
-        'game_name': g_names,
-        'total_tickets': total_tix,
-        'tot_money_in_game': tot_money_in_game,
-        'game_probability': game_probability,
-        'remaining_tix': remaining_tix,
-        'cur_money_in_game': cur_money_in_game,
-        'init_value_per_ticket': init_value_per_ticket,
-        'cur_value_per_ticket': cur_value_per_ticket,
-        'change_in_value': change_in_value
+        'Game Number': numbers,
+        'Name': g_names,
+        'Ticket Price': g_cost,
+        'Total Tickets': total_tix,
+        'Total Money in Game': tot_money_in_game,
+        'Probability': game_probability,
+        'Remaining Tickets': remaining_tix,
+        'Current Money in Game': cur_money_in_game,
+        'Initial $ per Ticket': init_value_per_ticket,
+        'Current $ per Ticket': cur_value_per_ticket,
+        'Change in Value': change_in_value
     }
 )
-
     # sort the dataframe
-results = r_df.sort_values(['change_in_value'], ascending=False)
+results = r_df.sort_values(['Change in Value'], ascending=False)
     # write out the CSV
-results.to_csv('~/Desktop/Results.csv', sep = ',')
-
+results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
 
 # endregion
