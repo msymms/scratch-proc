@@ -65,6 +65,10 @@ if '$2,500/wk***' in df.values:
 # Convert prize_level to numeric
 df.prize_level = df.prize_level.astype(int)
 
+#replace all NaN with 0
+df.prizes_claimed.fillna(0, inplace = True)
+
+
 # endregion
 
 # region *********** Retrieve the Links to each Game *****************
@@ -141,7 +145,7 @@ for num in numbers:
     tix = int(total_tix[i])
     prob = float(game_probability[i])
     # calculate the estimated remaining tickets in game
-    est_tix_rem = tix - (sum(df2.prizes_claimed.values) * (prob))
+    est_tix_rem = tix - (sum(df2.prizes_claimed) * 2.5)
     remaining_tix.append(est_tix_rem)
     # # calculate the initial value per ticket
     # init_tix_val = format((sum(tot_money_at_level) / tix), '.2f')
@@ -155,14 +159,14 @@ for num in numbers:
     # ch_val = float(cur_tix_val) - float(init_tix_val)
     # change_in_value.append(ch_val)
     # calculate the percentage of tickets left
-    pct_prizes = sum(df2.prizes_claimed) / tot_prizes
+    pct_prizes = 1 - (sum(df2.prizes_claimed) / tot_prizes)
     percent_tix.append(pct_prizes)
     # calculate the percetage of money left
     pct_money = sum(cur_money_at_level.values) / sum(tot_money_at_level)
     percent_money.append(pct_money)
 
     #increment the indexer
-    i += i
+    i = i + 1
 
 # endregion
 
@@ -198,8 +202,11 @@ r_df = pd.DataFrame(
     }
 )
     # sort the dataframe
-results = r_df.sort_values(['Game Number'], ascending=False)
+results = r_df.sort_values(['% Money Left'], ascending=False)
     # write out the CSV
-results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
+# results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
+
+results.to_csv('~/Desktop/Results.csv', sep=',')
+
 
 # endregion
