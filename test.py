@@ -204,9 +204,12 @@ r_df = pd.DataFrame(
     # sort the dataframe
 results = r_df.sort_values(['% Money Left'], ascending=False)
     # write out the CSV
+
+import time
+timestr = time.strftime("%m%d%y")
 # results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
 
-results.to_csv('~/Desktop/Results.csv', sep=',')
+results.to_csv('~/Desktop/Results' + timestr + '.csv', sep=',')
 
 
 # endregion
