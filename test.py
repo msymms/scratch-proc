@@ -62,6 +62,16 @@ if 'Free Pick 3 Ticket' in df.values:
     idx = df.prize_level[df.prize_level == 'Free Pick 3 Ticket'].index.tolist()
     df.set_value(idx, 'prize_level', 1)
 
+if '$777,777' in df.values:
+    # strip all non-numeric chars from prize level
+    idx = df.prize_level[df.prize_level == '$777,777'].index.tolist()
+    df.set_value(idx, 'prize_level', 777777)
+
+# # Convert prize_level to string for regex
+# df.prize_level = df.prize_level.astype(str)
+#
+# df.prize_level = ''.join(re.findall(r'\d+', df.prize_level))
+
 # Convert prize_level to numeric
 df.prize_level = df.prize_level.astype(int)
 
