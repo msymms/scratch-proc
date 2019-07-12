@@ -6,7 +6,7 @@ import pandas as pd
 # grab the data from the lottery website
 # we need to grab the csv file and load it into the dataframe
 # then we grab the urls for each game
-# from then we grab the total tickets
+# from there we grab the total tickets
 # once we have the total tickets we can calculate the initial value per ticket.
 # Then we want to calculate the tickets left and the money left in each game
 # From there we can determine the current value per ticket.

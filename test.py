@@ -100,21 +100,18 @@ for tag in links:
 loop = True
 def remove_games():
     for num in numbers:
-        loop = False
         if int(num) in df.game_number.values:
             continue
         else:
             idx = numbers.index(num)
             numbers.remove(num)
             game_urls.pop(idx)
-            loop = True
             num=''
-            break
+            return True
 
 
-while loop:
-    remove_games()
-
+while remove_games():
+    pass
 
 
 
