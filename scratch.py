@@ -3,13 +3,26 @@ import requests as rq
 import re
 import pandas as pd
 
-# grab the data from the lottery website
-# we need to grab the csv file and load it into the dataframe
-# then we grab the urls for each game
-# from there we grab the total tickets
-# once we have the total tickets we can calculate the initial value per ticket.
-# Then we want to calculate the tickets left and the money left in each game
-# From there we can determine the current value per ticket.
+#************** Pseudo Code ******************
+#   The premise is this:  Each game has an initial overall odds and top_prize odds.
+#   As the game progresses those odds change becuase tix are sold and prizes are claimed.
+#   The program seeks to identify those games whose odds have changed in favor of the player.
+#
+#   1. Grab the CSV from the lottery website
+#   2. Load into a data frame
+#   3. Go to all page and scrape all the game urls
+#   4. scrape from each game the Total Tix;
+#   5. Determine initial
+#       Overall Odds
+#       Top Prize Odds
+#   6. Calculate the remaining tickets as a factor of overall odds
+#   7. Determine (at time T)
+#       Overall Odds
+#       Top Prize Odds
+#       Overall delta
+#       Top PRoze delta
+#
+#*********************************************
 
 # ***********  Process CSV data **************
 numbers = []
