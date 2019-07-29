@@ -20,7 +20,7 @@ import pandas as pd
 #       Overall Odds
 #       Top Prize Odds
 #       Overall delta
-#       Top PRoze delta
+#       Top Prize delta
 #
 #*********************************************
 

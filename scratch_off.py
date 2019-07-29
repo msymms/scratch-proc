@@ -9,24 +9,34 @@ numbers = []
 g_names = []
 g_cost = []
 total_tix = []
-tot_money_in_game = []
-game_probability = []
-remaining_tix = []  # this is an estimate based on the linear sales of winners * probability
-cur_money_in_game = []
-# init_value_per_ticket = []
-# cur_value_per_ticket = []
-# change_in_value = []
-percent_money = []
-percent_tix = []
+overall_odds = []
+top_prize_odds = []
+current_overall_odds = []
+current_top_prize_odds = []
+overall_odds_delta = []
+top_prize_odds_delta =[]
+remaining_tix = []  # this is an estimate based on the linear sales of winners * odds
 
-# grab the data from the lottery website
-# we need to grab the csv file and load it into the dataframe
-# then we grab the urls for each game
-# from then we grab the total tickets
-# once we have the total tickets we can calculate the initial value per ticket.
-# Then we want to calculate the tickets left and the money left in each game
-# From there we can determine the current value per ticket.
-
+#************** Pseudo Code ******************
+#   The premise is this:  Each game has an initial overall odds and top_prize odds.
+#   As the game progresses those odds change becuase tix are sold and prizes are claimed.
+#   The program seeks to identify those games whose odds have changed in favor of the player.
+#
+#   1. Grab the CSV from the lottery website
+#   2. Load into a data frame
+#   3. Go to all page and scrape all the game urls
+#   4. scrape from each game the Total Tix;
+#   5. Determine initial
+#       Overall Odds
+#       Top Prize Odds
+#   6. Calculate the remaining tickets as a factor of overall odds
+#   7. Determine (at time T)
+#       Overall Odds
+#       Top Prize Odds
+#       Overall delta
+#       Top Prize delta
+#
+#*********************************************
 # region *********** Process CSV data **************
 
 url = "http://www.txlottery.org/export/sites/lottery/Games/Scratch_Offs/scratchoff.csv"
@@ -39,7 +49,6 @@ df.columns = df.columns.str.strip()
 names = df.columns.tolist()
 names[names.index('Game Number')] = 'game_number'
 names[names.index('Game Name')] = 'game_name'
-names[names.index('Game Close Date')] = 'close_date'
 names[names.index('Ticket Price')] = 'ticket_price'
 names[names.index('Prize Level')] = 'prize_level'
 names[names.index('Total Prizes in Level')] = 'prizes_in_level'
@@ -52,7 +61,7 @@ df = df[df.prize_level != 'TOTAL']
 # fix prize levels for weekly awards
 if '$1,000/wk***' in df.values:
     idx = df.prize_level[df.prize_level == '$1,000/wk***'].index.tolist()
-    df.set_value(idx, 'prize_level', 1040000)
+    df.at[idx, 'prize_level'] = 1040000
 
 if '$500/wk***' in df.values:
     idx = df.prize_level[df.prize_level == '$500/wk***'].index.tolist()
@@ -67,10 +76,6 @@ if '$777,777' in df.values:
     idx = df.prize_level[df.prize_level == '$777,777'].index.tolist()
     df.at[idx, 'prize_level'] = 777777
 
-# # Convert prize_level to string for regex
-# df.prize_level = df.prize_level.astype(str)
-#
-# df.prize_level = ''.join(re.findall(r'\d+', df.prize_level))
 
 # Convert prize_level to numeric
 df.prize_level = df.prize_level.astype(int)
@@ -97,7 +102,6 @@ for tag in links:
     game_urls.append(tag['href'])
 
 # remove games that are not in the csv file - these are usually games that have not started.
-loop = True
 def remove_games():
     for num in numbers:
         if int(num) in df.game_number.values:
@@ -112,8 +116,6 @@ def remove_games():
 
 while remove_games():
     pass
-
-
 
 # endregion
 
@@ -130,19 +132,13 @@ for link in game_urls:
     temp2 = int(str(temp_str[0]))
     total_tix.append(temp2)
 
-    temp_str = soup.find('p', class_='scratchoffDetailsOdds').string
-    temp_str = temp_str.rsplit('*')[0]
-    temp2 = float(str(temp_str[-4:]))
-    game_probability.append(temp2)
-
 # endregion
 
 # region *********** Calculate the Odds and Initial Value Per Ticket ****************
 
-i = 0
-
 #   add up the total prizes in the game based on game id
 for num in numbers:
+
     try:
         # retreive the subset based on game number
         df2 = df[df.game_number == int(num)]
@@ -152,45 +148,41 @@ for num in numbers:
         g_cost.append(df2.ticket_price.iloc[0])
         # calculate the total amount of winning tickets in game
         tot_prizes = sum(df2.prizes_in_level.values)
-        # calculate the amount of money at each prize level
-        tot_money_at_level = df2.prize_level * df2.prizes_in_level
-        # calculate the initial amount of money in the game
-        tot_money_in_game.append(sum(tot_money_at_level))
-        # calculate current money in game
-        cur_money_at_level = (df2.prizes_in_level - df2.prizes_claimed) * df2.prize_level
-        # calculate the current amount of money in the game
-        cur_money_in_game.append(sum(cur_money_at_level.values))
-        # get the total tickets in game based index
-        tix = int(total_tix[i])
-        prob = float(game_probability[i])
+        # get the value for the number of top prizes in each game
+        num_top_prize = (df2.prizes_in_level.iloc[-1])
+        # calculte the total prizes remaining
+        tot_rem_prizes = tot_prizes - sum(df2.prizes_claimed)
+        # calculate the total top prizes claimed
+        top_prize_rem = num_top_prize - df2.prizes_claimed.iloc[-1]
+
+        # # get the total tickets in game based index
+        tix = int(total_tix[numbers.index(num)])
+        #calculate the initial overall odds
+        ov_odds = round(float(tix/tot_prizes),4)
+        overall_odds.append(ov_odds)
+        #calculate the initial odds for top prize
+        top_odds = round(float(tix/num_top_prize), 4)
+        top_prize_odds.append(top_odds)
         # calculate the estimated remaining tickets in game
-        est_tix_rem = tix - (sum(df2.prizes_claimed) * 2.5)
-        remaining_tix.append(est_tix_rem)
-        # # calculate the initial value per ticket
-        # init_tix_val = format((sum(tot_money_at_level) / tix), '.2f')
-        # # add to list
-        # init_value_per_ticket.append(init_tix_val)
-        # #calculate the current value per ticket
-        # cur_tix_val = format(((sum(cur_money_at_level)) / est_tix_rem), '.2f')
-        # # add to list
-        # cur_value_per_ticket.append(cur_tix_val)
-        # # calculate the change in value
-        # ch_val = float(cur_tix_val) - float(init_tix_val)
-        # change_in_value.append(ch_val)
-        # calculate the percentage of tickets left
-        pct_prizes = 1 - (sum(df2.prizes_claimed) / tot_prizes)
-        percent_tix.append(pct_prizes)
-        # calculate the percetage of money left
-        pct_money = sum(cur_money_at_level.values) / sum(tot_money_at_level)
-        percent_money.append(pct_money)
+        est_tix_rem = tix - ((sum(df2.prizes_claimed) * (overall_odds[numbers.index(num)] * 1.05)))
+        remaining_tix.append(round(est_tix_rem))
+
+        # calculate the current overall odds
+        curr_ov_odds = round((est_tix_rem/tot_rem_prizes), 4)
+        current_overall_odds.append(curr_ov_odds)
+        #calculate the current top prize odds
+        curr_top_odds = round((est_tix_rem/top_prize_rem), 4)
+        current_top_prize_odds.append(curr_top_odds)
+
+        #calclulate the odds deltas
+        overall_odds_delta.append(round((ov_odds - curr_ov_odds), 4))
+        top_prize_odds_delta.append(round((top_odds - curr_top_odds), 4))
     except:
         if (df2.empty):
             total_tix.pop(numbers.index(num))
-            game_probability.pop(numbers.index(num))
+            overall_odds.pop(numbers.index(num))
             continue
 
-# increment the indexer
-i = i + 1
 
 # endregion
 
@@ -200,13 +192,9 @@ i = i + 1
 print('Length of numbers ' + str(len(numbers)))
 print('Length of g_names ' + str(len(g_names)))
 print('Length of total_tix ' + str(len(total_tix)))
-print('Length of tot_money_in_game ' + str(len(tot_money_in_game)))
-print('Length of game_probability ' + str(len(game_probability)))
+print('Length of overall_odds ' + str(len(overall_odds)))
 print('Length of remaining_tix ' + str(len(remaining_tix)))
-print('Length of cur_money_in_game ' + str(len(cur_money_in_game)))
-#print('Length of init_value_per_ticket ' + str(len(init_value_per_ticket)))
-#print('Length of cur_value_per_ticket ' + str(len(cur_value_per_ticket)))
-#print('Length of change_in_value ' + str(len(change_in_value)))
+print('Length of overall odds delta ' + str(len(overall_odds_delta)))
 
 
 # construct the dataframe from the lists
@@ -216,23 +204,23 @@ r_df = pd.DataFrame(
         'Name': g_names,
         'Ticket Price': g_cost,
         'Total Tickets': total_tix,
-        'Total Money in Game': tot_money_in_game,
-        'Probability': game_probability,
-        'Remaining Tickets': remaining_tix,
-        'Current Money in Game': cur_money_in_game,
-        '% Prizes Left': percent_tix,
-        '% Money Left': percent_money,
+        'Est. Remaining Tickets': remaining_tix,
+        'Initial Odds': overall_odds,
+        'Current Overall Odds' : current_overall_odds,
+        'Overall Delta' : overall_odds_delta,
+        'Initial Top Prize Odds': top_prize_odds,
+        'Current Top Prize Odds' : current_top_prize_odds,
+        'Top Prize Delta' : top_prize_odds_delta
     }
 )
 # sort the dataframe
-results = r_df.sort_values(['% Money Left'], ascending=False)
+results = r_df.sort_values(['Top Prize Delta'], ascending=False)
 # write out the CSV
 
 import time
 
 timestr = time.strftime("%m%d%y")
-# results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
-
+# stream out the file
 results.to_csv('~/Desktop/Results' + timestr + '.csv', sep=',')
 
 # endregion
