@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests as rq
 import re
 import pandas as pd
+import time
 
 # ***GLOBALS***
 game_urls = []
@@ -14,12 +15,12 @@ top_prize_odds = []
 current_overall_odds = []
 current_top_prize_odds = []
 overall_odds_delta = []
-top_prize_odds_delta =[]
+top_prize_odds_delta = []
 remaining_tix = []  # this is an estimate based on the linear sales of winners * odds
 
-#************** Pseudo Code ******************
+# ************** Pseudo Code ******************
 #   The premise is this:  Each game has an initial overall odds and top_prize odds.
-#   As the game progresses those odds change becuase tix are sold and prizes are claimed.
+#   As the game progresses those odds change because tix are sold and prizes are claimed.
 #   The program seeks to identify those games whose odds have changed in favor of the player.
 #
 #   1. Grab the CSV from the lottery website
@@ -36,7 +37,7 @@ remaining_tix = []  # this is an estimate based on the linear sales of winners *
 #       Overall delta
 #       Top Prize delta
 #
-#*********************************************
+# *********************************************
 # region *********** Process CSV data **************
 
 url = "http://www.txlottery.org/export/sites/lottery/Games/Scratch_Offs/scratchoff.csv"
@@ -101,21 +102,22 @@ for tag in links:
     numbers.append(tag.string)
     game_urls.append(tag['href'])
 
+
 # remove games that are not in the csv file - these are usually games that have not started.
 def remove_games():
     for num in numbers:
         if int(num) in df.game_number.values:
             continue
         else:
-            idx = numbers.index(num)
+            idx2 = numbers.index(num)
             numbers.remove(num)
-            game_urls.pop(idx)
-            num=''
+            game_urls.pop(idx2)
             return True
 
 
 while remove_games():
     pass
+
 
 # endregion
 
@@ -128,7 +130,7 @@ for link in game_urls:
     temp_str = soup.find('p', class_='scratchoffDetailsApproxTickets').string
     temp_str = str(temp_str).replace(',', '')
     temp_str = temp_str.rsplit('*')[0]
-    temp_str = re.findall('\d+', temp_str)
+    temp_str = re.findall(r'\d+', temp_str)
     temp2 = int(str(temp_str[0]))
     total_tix.append(temp2)
 
@@ -139,8 +141,9 @@ for link in game_urls:
 #   add up the total prizes in the game based on game id
 for num in numbers:
 
+    df2 = []
     try:
-        # retreive the subset based on game number
+        # retrieve the subset based on game number
         df2 = df[df.game_number == int(num)]
         # set the game name
         g_names.append(df2.game_name.iloc[0])
@@ -157,28 +160,28 @@ for num in numbers:
 
         # # get the total tickets in game based index
         tix = int(total_tix[numbers.index(num)])
-        #calculate the initial overall odds
-        ov_odds = round(float(tix/tot_prizes),4)
+        # calculate the initial overall odds
+        ov_odds = round(float(tix/tot_prizes), 4)
         overall_odds.append(ov_odds)
-        #calculate the initial odds for top prize
+        # calculate the initial odds for top prize
         top_odds = round(float(tix/num_top_prize), 4)
         top_prize_odds.append(top_odds)
         # calculate the estimated remaining tickets in game
-        est_tix_rem = tix - ((sum(df2.prizes_claimed) * (overall_odds[numbers.index(num)] * 1.05)))
+        est_tix_rem = tix - (sum(df2.prizes_claimed) * (overall_odds[numbers.index(num)] * 1.05))
         remaining_tix.append(round(est_tix_rem))
 
         # calculate the current overall odds
         curr_ov_odds = round((est_tix_rem/tot_rem_prizes), 4)
         current_overall_odds.append(curr_ov_odds)
-        #calculate the current top prize odds
+        # calculate the current top prize odds
         curr_top_odds = round((est_tix_rem/top_prize_rem), 4)
         current_top_prize_odds.append(curr_top_odds)
 
-        #calclulate the odds deltas
+        # calclulate the odds deltas
         overall_odds_delta.append(round((ov_odds - curr_ov_odds), 4))
         top_prize_odds_delta.append(round((top_odds - curr_top_odds), 4))
     except:
-        if (df2.empty):
+        if df2.empty:
             total_tix.pop(numbers.index(num))
             overall_odds.pop(numbers.index(num))
             continue
@@ -206,18 +209,16 @@ r_df = pd.DataFrame(
         'Total Tickets': total_tix,
         'Est. Remaining Tickets': remaining_tix,
         'Initial Odds': overall_odds,
-        'Current Overall Odds' : current_overall_odds,
-        'Overall Delta' : overall_odds_delta,
+        'Current Overall Odds': current_overall_odds,
+        'Overall Delta': overall_odds_delta,
         'Initial Top Prize Odds': top_prize_odds,
-        'Current Top Prize Odds' : current_top_prize_odds,
-        'Top Prize Delta' : top_prize_odds_delta
+        'Current Top Prize Odds': current_top_prize_odds,
+        'Top Prize Delta': top_prize_odds_delta
     }
 )
 # sort the dataframe
 results = r_df.sort_values(['Top Prize Delta'], ascending=False)
 # write out the CSV
-
-import time
 
 timestr = time.strftime("%m%d%y")
 # stream out the file
