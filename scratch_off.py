@@ -167,7 +167,7 @@ for num in numbers:
         top_odds = round(float(tix/num_top_prize), 4)
         top_prize_odds.append(top_odds)
         # calculate the estimated remaining tickets in game
-        est_tix_rem = tix - (sum(df2.prizes_claimed) * (overall_odds[numbers.index(num)] * 1.05))
+        est_tix_rem = tix - (sum(df2.prizes_claimed) * (overall_odds[numbers.index(num)] * 1.025))
         remaining_tix.append(round(est_tix_rem))
 
         # calculate the current overall odds
