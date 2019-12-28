@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3
 from bs4 import BeautifulSoup
 import requests as rq
 import re
@@ -52,7 +53,7 @@ df = df[df.prize_level != 'TOTAL']
 # fix prize levels for weekly awards
 if '$1,000/wk***' in df.values:
     idx = df.prize_level[df.prize_level == '$1,000/wk***'].index.tolist()
-    df.set_value(idx, 'prize_level', 1040000)
+    df.at[idx, 'prize_level'] = 1040000
 
 if '$500/wk***' in df.values:
     idx = df.prize_level[df.prize_level == '$500/wk***'].index.tolist()
@@ -233,6 +234,6 @@ import time
 timestr = time.strftime("%m%d%y")
 # results.to_csv('C:/Users/Mark/Desktop/Results.csv', sep=',')
 
-results.to_csv('~/Desktop/Results' + timestr + '.csv', sep=',')
+results.to_csv('~/Desktop/Results/Results' + timestr + '.csv', sep=',')
 
 # endregion

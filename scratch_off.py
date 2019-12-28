@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3
 from bs4 import BeautifulSoup
 import requests as rq
 import re
@@ -17,6 +18,7 @@ current_top_prize_odds = []
 overall_odds_delta = []
 top_prize_odds_delta = []
 remaining_tix = []  # this is an estimate based on the linear sales of winners * odds
+percent_tix_rem = []
 
 # ************** Pseudo Code ******************
 #   The premise is this:  Each game has an initial overall odds and top_prize odds.
@@ -169,12 +171,14 @@ for num in numbers:
         # calculate the estimated remaining tickets in game
         est_tix_rem = tix - (sum(df2.prizes_claimed) * (overall_odds[numbers.index(num)] * 1.025))
         remaining_tix.append(round(est_tix_rem))
+        # calculate the percentage of tix remaining
+        percent_tix_rem = round(est_tix_rem / tix, 2)
 
         # calculate the current overall odds
-        curr_ov_odds = round((est_tix_rem/tot_rem_prizes), 4)
+        curr_ov_odds = round((est_tix_rem / tot_rem_prizes), 4)
         current_overall_odds.append(curr_ov_odds)
         # calculate the current top prize odds
-        curr_top_odds = round((est_tix_rem/top_prize_rem), 4)
+        curr_top_odds = round((est_tix_rem / top_prize_rem), 4)
         current_top_prize_odds.append(curr_top_odds)
 
         # calclulate the odds deltas
@@ -192,12 +196,12 @@ for num in numbers:
 # region ********** Finish the File *********************
 
 # testing the lengths of the lists
-print('Length of numbers ' + str(len(numbers)))
-print('Length of g_names ' + str(len(g_names)))
-print('Length of total_tix ' + str(len(total_tix)))
-print('Length of overall_odds ' + str(len(overall_odds)))
-print('Length of remaining_tix ' + str(len(remaining_tix)))
-print('Length of overall odds delta ' + str(len(overall_odds_delta)))
+#print('Length of numbers ' + str(len(numbers)))
+#print('Length of g_names ' + str(len(g_names)))
+#print('Length of total_tix ' + str(len(total_tix)))
+#print('Length of overall_odds ' + str(len(overall_odds)))
+#print('Length of remaining_tix ' + str(len(remaining_tix)))
+#print('Length of overall odds delta ' + str(len(overall_odds_delta)))
 
 
 # construct the dataframe from the lists
@@ -208,9 +212,10 @@ r_df = pd.DataFrame(
         'Ticket Price': g_cost,
         'Total Tickets': total_tix,
         'Est. Remaining Tickets': remaining_tix,
+        'Percentage Tix Remaining': percent_tix_rem,
         'Initial Odds': overall_odds,
         'Current Overall Odds': current_overall_odds,
-        'Overall Delta': overall_odds_delta,
+        'Odds Delta': overall_odds_delta,
         'Initial Top Prize Odds': top_prize_odds,
         'Current Top Prize Odds': current_top_prize_odds,
         'Top Prize Delta': top_prize_odds_delta
@@ -222,6 +227,6 @@ results = r_df.sort_values(['Top Prize Delta'], ascending=False)
 
 timestr = time.strftime("%m%d%y")
 # stream out the file
-results.to_csv('~/Desktop/Results' + timestr + '.csv', sep=',')
+results.to_csv('~/Desktop/Results/Results' + timestr + '.csv', sep=',')
 
 # endregion
